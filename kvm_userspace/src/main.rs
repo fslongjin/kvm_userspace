@@ -2,10 +2,7 @@ use std::path::PathBuf;
 
 use kvm_bindings::{kvm_regs, kvm_sregs, kvm_userspace_memory_region};
 use kvm_ioctls::{Kvm, VcpuFd, VmFd};
-use libc::{
-    c_void, mmap, sleep, MAP_ANONYMOUS, MAP_NORESERVE, MAP_PRIVATE, MAP_SHARED, PROT_READ,
-    PROT_WRITE,
-};
+use libc::{c_void, mmap, MAP_ANONYMOUS, MAP_SHARED, PROT_READ, PROT_WRITE};
 
 extern crate kvm_bindings;
 extern crate kvm_ioctls;
@@ -113,13 +110,8 @@ impl Vm {
             "self.hva_ram_start: {:p}, ptr={ptr:?}",
             self.hva_ram_start as *mut u8
         );
-        // unsafe {
-        //     std::ptr::copy_nonoverlapping(kernel.as_ptr(), ptr, kernel.len());
-        // }
-        for i in 0..kernel.len() {
-            unsafe {
-                *ptr.offset(i as isize) = kernel[i];
-            }
+        unsafe {
+            std::ptr::copy_nonoverlapping(kernel.as_ptr(), ptr, kernel.len());
         }
     }
 
@@ -132,7 +124,6 @@ impl Vm {
                     println!("KVM_EXIT_HLT");
                     // sleep 1s using rust std
                     std::thread::sleep(std::time::Duration::from_secs(1));
-
                 }
                 kvm_ioctls::VcpuExit::IoOut(port, data) => {
                     let data_str = String::from_utf8_lossy(data);
@@ -155,7 +146,7 @@ fn main() {
     let image = PathBuf::from("./guest_os/kernel.bin");
     let mut vm = Vm::new();
 
-    // 设置虚拟机的内存大小16MB
+    // 设置虚拟机的内存大小1MB
     let mem_size = 0x1000;
     vm.setup_memory(mem_size);
     vm.setup_cpu();
